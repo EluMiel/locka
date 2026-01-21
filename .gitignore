@@ -1,0 +1,19 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual env
+.venv/
+venv/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# App data (SECRET)
+data/vault.enc
+data/*.enc
+
+# Logs
+*.log
