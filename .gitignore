@@ -17,3 +17,6 @@ data/*.enc
 
 # Logs
 *.log
+
+# Env file
+.env
