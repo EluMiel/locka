@@ -15,6 +15,31 @@ class Application(tk.Frame):
         # Example items
         self.listbnox.insert(tk.END, "Google | testuser | password123")
         self.listbnox.insert(tk.END, "Facebook | testuser | password123")
+        
+        add_btn = tk.Button(self)
+        add_btn["text"] = "追加"
+        add_btn["command"] = lambda: print("Add button clicked")
+        add_btn.pack(side="left", padx=5, pady=5)
+        
+        delete_btn = tk.Button(self)
+        delete_btn["text"] = "削除"
+        delete_btn["command"] = lambda: print("Delete button clicked")
+        delete_btn.pack(side="left", padx=5, pady=5)
+        
+        id_copy_btn = tk.Button(self)
+        id_copy_btn["text"] = "IDコピー"
+        id_copy_btn["command"] = lambda: print("ID Copy button clicked")
+        id_copy_btn.pack(side="left", padx=5, pady=5)
+        
+        pw_copy_btn = tk.Button(self)
+        pw_copy_btn["text"] = "PWコピー"
+        pw_copy_btn["command"] = lambda: print("PW Copy button clicked")
+        pw_copy_btn.pack(side="left", padx=5, pady=5)
+        
+        save_btn = tk.Button(self)
+        save_btn["text"] = "保存"
+        save_btn["command"] = lambda: print("Save button clicked")
+        save_btn.pack(side="left", padx=5, pady=5)
     
 root=tk.Tk()
 root.title("Locka")
