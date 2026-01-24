@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import simpledialog
+from tkinter import messagebox
 
 class Application(tk.Frame):
     def __init__(self, root):
@@ -41,7 +42,7 @@ class Application(tk.Frame):
         
         save_btn = tk.Button(self)
         save_btn["text"] = "保存"
-        save_btn["command"] = lambda: print("Save button clicked")
+        save_btn["command"] = self.save_items
         save_btn.pack(side="left", padx=5, pady=5)
     
     def delete_item(self):
@@ -91,6 +92,13 @@ class Application(tk.Frame):
         self.root.clipboard_append(pw)
         self.root.update()
 
+    def save_items(self):
+        # TODO: 後でファイル保存や暗号化を実装する
+        self.show_saved_message()
+
+    def show_saved_message(self):
+        messagebox.showinfo("保存", "保存しました。")
+        
 root=tk.Tk()
 root.title("Locka")
 root.geometry("800x600")
