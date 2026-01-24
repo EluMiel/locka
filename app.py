@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import simpledialog
 
 class Application(tk.Frame):
     def __init__(self, root):
@@ -20,7 +21,7 @@ class Application(tk.Frame):
             self.listbox.insert(tk.END, f"{item['site']} | {item['id']} | {item['pw']}")
         add_btn = tk.Button(self)
         add_btn["text"] = "追加"
-        add_btn["command"] = lambda: print("Add button clicked")
+        add_btn["command"] = self.add_item
         add_btn.pack(side="left", padx=5, pady=5)
         
         delete_btn = tk.Button(self)
@@ -50,6 +51,21 @@ class Application(tk.Frame):
         index=selected[0]
         del self.items[index]
         self.listbox.delete(index)
+
+    def add_item(self):
+        site = simpledialog.askstring("追加", "サイト名を入力してください:", parent=self.root)
+        if site is None:
+            return
+        user_id = simpledialog.askstring("追加", "IDを入力してください:", parent=self.root)
+        if user_id is None:
+            return
+        pw = simpledialog.askstring("追加", "パスワードを入力してください:", parent=self.root)
+        if pw is None:
+            return
+
+        item = {"site": site, "id": user_id, "pw": pw}
+        self.items.append(item)
+        self.listbox.insert(tk.END, f"{item['site']} | {item['id']} | {item['pw']}")
 
 root=tk.Tk()
 root.title("Locka")
