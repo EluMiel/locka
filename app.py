@@ -13,7 +13,7 @@ class Application(tk.Frame):
         ]
         self.create_widgets()
 
-    def create_widgets(self):
+    def create_widgets(self): #self.itemsとListboxの同期はインデックスで管理する。(並び順の挙動に注意。)
         self.listbox = tk.Listbox(self, width=50, height=15, selectmode="browse")
         self.listbox.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -29,15 +29,15 @@ class Application(tk.Frame):
         delete_btn["command"] = self.delete_item
         delete_btn.pack(side="left", padx=5, pady=5)
         
-        id_copy_btn = tk.Button(self)
-        id_copy_btn["text"] = "IDコピー"
-        id_copy_btn["command"] = lambda: print("ID Copy button clicked")
-        id_copy_btn.pack(side="left", padx=5, pady=5)
-        
-        pw_copy_btn = tk.Button(self)
-        pw_copy_btn["text"] = "PWコピー"
-        pw_copy_btn["command"] = lambda: print("PW Copy button clicked")
-        pw_copy_btn.pack(side="left", padx=5, pady=5)
+        copy_id_btn = tk.Button(self)
+        copy_id_btn["text"] = "IDコピー"
+        copy_id_btn["command"] = self.copy_id
+        copy_id_btn.pack(side="left", padx=5, pady=5)
+
+        copy_pw_btn = tk.Button(self)
+        copy_pw_btn["text"] = "PWコピー"
+        copy_pw_btn["command"] = self.copy_pw
+        copy_pw_btn.pack(side="left", padx=5, pady=5)
         
         save_btn = tk.Button(self)
         save_btn["text"] = "保存"
@@ -66,6 +66,30 @@ class Application(tk.Frame):
         item = {"site": site, "id": user_id, "pw": pw}
         self.items.append(item)
         self.listbox.insert(tk.END, f"{item['site']} | {item['id']} | {item['pw']}")
+
+    def copy_id(self):
+        selected = self.listbox.curselection()
+        if not selected:
+            return
+        
+        index = selected[0]
+        user_id = self.items[index]['id']
+
+        self.root.clipboard_clear()
+        self.root.clipboard_append(user_id)
+        self.root.update()
+
+    def copy_pw(self):
+        selected = self.listbox.curselection()
+        if not selected:
+            return
+        
+        index = selected[0]
+        pw = self.items[index]['pw']
+
+        self.root.clipboard_clear()
+        self.root.clipboard_append(pw)
+        self.root.update()
 
 root=tk.Tk()
 root.title("Locka")
