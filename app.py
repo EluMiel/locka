@@ -14,14 +14,14 @@ class Application(tk.Frame):
             {"site":"Google", "id":"testuser", "pw":"password123"},
             {"site":"Facebook", "id":"testuser", "pw":"password123"},
         ]
+        self.load_items()
         self.create_widgets()
+        self.refresh_listbox()
 
     def create_widgets(self): #self.itemsとListboxの同期はインデックスで管理する。(並び順の挙動に注意。)
         self.listbox = tk.Listbox(self, width=50, height=15, selectmode="browse")
         self.listbox.pack(fill="both", expand=True, padx=10, pady=10)
 
-        for item in self.items:
-            self.listbox.insert(tk.END, f"{item['site']} | {item['id']} | {item['pw']}")
         add_btn = tk.Button(self)
         add_btn["text"] = "追加"
         add_btn["command"] = self.add_item
@@ -107,6 +107,19 @@ class Application(tk.Frame):
         
     def show_saved_message(self):
         messagebox.showinfo("保存", "保存しました。")
+        
+    def load_items(self):
+        path = Path("data") / "locka.json"
+        if path.exists():
+            with path.open("r", encoding="utf-8") as f:
+                self.items = json.load(f)
+        else:
+            self.items = []
+            
+    def refresh_listbox(self):
+        self.listbox.delete(0, tk.END)
+        for item in self.items:
+            self.listbox.insert(tk.END, f"{item['site']} | {item['id']} | {item['pw']}")
         
 root=tk.Tk()
 root.title("Locka")

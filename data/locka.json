@@ -13,5 +13,10 @@
     "site": "steam",
     "id": "testuser",
     "pw": "1234"
+  },
+  {
+    "site": "楽天",
+    "id": "user",
+    "pw": "1234"
   }
 ]
