@@ -48,9 +48,12 @@ class Application(tk.Frame):
         selected=self.listbox.curselection()
         if not selected:
             return
+        
         index=selected[0]
         del self.items[index]
+        
         self.refresh_listbox()
+        self.save_items()
 
     def add_item(self):
         site = simpledialog.askstring("追加", "サイト名を入力してください:", parent=self.root)
