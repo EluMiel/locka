@@ -10,12 +10,9 @@ class Application(tk.Frame):
         self.pack()
         self.pack_propagate(False)
         self.root = root
-        self.items=[
-            {"site":"Google", "id":"testuser", "pw":"password123"},
-            {"site":"Facebook", "id":"testuser", "pw":"password123"},
-        ]
-        self.load_items()
+        self.items=[]
         self.create_widgets()
+        self.load_items()
         self.refresh_listbox()
 
     def create_widgets(self): #self.itemsとListboxの同期はインデックスで管理する。(並び順の挙動に注意。)
@@ -53,7 +50,7 @@ class Application(tk.Frame):
             return
         index=selected[0]
         del self.items[index]
-        self.listbox.delete(index)
+        self.refresh_listbox()
 
     def add_item(self):
         site = simpledialog.askstring("追加", "サイト名を入力してください:", parent=self.root)
@@ -68,7 +65,7 @@ class Application(tk.Frame):
 
         item = {"site": site, "id": user_id, "pw": pw}
         self.items.append(item)
-        self.listbox.insert(tk.END, f"{item['site']} | {item['id']} | {item['pw']}")
+        self.refresh_listbox()
 
     def copy_id(self):
         selected = self.listbox.curselection()
