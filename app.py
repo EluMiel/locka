@@ -66,6 +66,7 @@ class Application(tk.Frame):
         item = {"site": site, "id": user_id, "pw": pw}
         self.items.append(item)
         self.refresh_listbox()
+        self.save_items()
 
     def copy_id(self):
         selected = self.listbox.curselection()
