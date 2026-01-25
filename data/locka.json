@@ -1,0 +1,17 @@
+[
+  {
+    "site": "Google",
+    "id": "testuser",
+    "pw": "password123"
+  },
+  {
+    "site": "Facebook",
+    "id": "testuser",
+    "pw": "password123"
+  },
+  {
+    "site": "steam",
+    "id": "testuser",
+    "pw": "1234"
+  }
+]

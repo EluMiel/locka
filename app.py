@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import simpledialog
 from tkinter import messagebox
+import json
+from pathlib import Path
 
 class Application(tk.Frame):
     def __init__(self, root):
@@ -93,9 +95,16 @@ class Application(tk.Frame):
         self.root.update()
 
     def save_items(self):
-        # TODO: 後でファイル保存や暗号化を実装する
+        # 保存先 (プロジェクト直下の data/locka.json)
+        data_dir = Path("data")
+        data_dir.mkdir(exist_ok=True)
+        path = data_dir / "locka.json"
+        
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(self.items, f, ensure_ascii=False, indent=2)
+            
         self.show_saved_message()
-
+        
     def show_saved_message(self):
         messagebox.showinfo("保存", "保存しました。")
         
