@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import simpledialog, messagebox
 import json
 from pathlib import Path
+from datetime import datetime
 
 class Application(tk.Frame):
     MASK = "********"  # パスワード非表示設定時の表示文字列
@@ -46,9 +47,6 @@ class Application(tk.Frame):
         copy_pw_btn = tk.Button(btn_frame, text="PWコピー", command=self.copy_pw)
         copy_pw_btn.pack(side="left", padx=5)
         
-        save_btn = tk.Button(btn_frame, text="保存", command=self.save_items)
-        save_btn.pack(side="left", padx=5)
-        
         show_pw_cb = tk.Checkbutton(btn_frame, text="パスワード表示", variable=self.show_pw, command=self.on_toggle_show_pw)
         show_pw_cb.pack(side="right", padx=5)
 
@@ -59,9 +57,8 @@ class Application(tk.Frame):
         
         index=selected[0]
         del self.items[index]
+        self.commit_change("削除")
         
-        self.refresh_listbox()
-        self.save_items()
 
     def add_item(self):
         site = simpledialog.askstring("追加", "サイト名を入力してください:", parent=self.root)
@@ -76,8 +73,7 @@ class Application(tk.Frame):
 
         item = {"site": site, "id": user_id, "pw": pw}
         self.items.append(item)
-        self.refresh_listbox()
-        self.save_items()
+        self.commit_change("追加")
 
     def copy_id(self):
         selected = self.listbox.curselection()
@@ -162,6 +158,57 @@ class Application(tk.Frame):
         self.refresh_listbox()
         self.save_items(show_message=False)
                 
+    def write_unseved_backup(self, payload: dict) -> Path:
+        """保存に失敗した際、現在のメモリ上の状態をバックアップに保存する。"""
+        data_dir = Path("data")
+        data_dir.mkdir(exist_ok=True)
+        
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = data_dir / f"locka_unsaved_{ts}.json"
+        
+        with backup_path.open("w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+            
+        return backup_path
+    
+    def commit_change(self, action_label: str):
+        """
+        変更後に保存を試みる。
+        失敗した場合:
+            - unsavedバックアップ作成
+            - エラー通知
+            - JSONからデータを読み直してロールバック
+        """
+        payload = {
+            "items": self.items,
+            "settings": {"show_pw": self.show_pw.get()}
+        }
+        
+        try:
+            # 自動保存なのでメッセージは出さない
+            self.save_items(show_message=False)
+            
+        except Exception as e:
+            # 失敗した状態を退避
+            try:
+                backup_path = self.write_unseved_backup(payload)
+                backup_msg = f"\nバックアップファイル: {backup_path}"
+            except Exception:
+                backup_msg = "\nバックアップファイルの作成に失敗しました。"
+                
+            messagebox.showerror(
+                "保存エラー",
+                f"{action_label}後の保存に失敗しました。\n"
+                "最後に保存された状態にロールバックします。"
+                f"{backup_msg}\n\n"
+                f"エラー詳細: {e}"
+            )
+            
+            self.load_items()
+
+        finally:
+            self.refresh_listbox()
+
 root=tk.Tk()
 root.title("Locka")
 root.geometry("800x600")

@@ -19,6 +19,11 @@
       "site": "楽天",
       "id": "user",
       "pw": "1234"
+    },
+    {
+      "site": "Amazon",
+      "id": "user",
+      "pw": "1234"
     }
   ],
   "settings": {
