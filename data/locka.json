@@ -1,22 +1,27 @@
-[
-  {
-    "site": "Google",
-    "id": "testuser",
-    "pw": "password123"
-  },
-  {
-    "site": "Facebook",
-    "id": "testuser",
-    "pw": "password123"
-  },
-  {
-    "site": "steam",
-    "id": "testuser",
-    "pw": "1234"
-  },
-  {
-    "site": "楽天",
-    "id": "user",
-    "pw": "1234"
+{
+  "items": [
+    {
+      "site": "Google",
+      "id": "testuser",
+      "pw": "password123"
+    },
+    {
+      "site": "Facebook",
+      "id": "testuser",
+      "pw": "password123"
+    },
+    {
+      "site": "steam",
+      "id": "testuser",
+      "pw": "1234"
+    },
+    {
+      "site": "楽天",
+      "id": "user",
+      "pw": "1234"
+    }
+  ],
+  "settings": {
+    "show_pw": true
   }
-]
+}

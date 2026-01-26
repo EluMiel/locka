@@ -1,49 +1,57 @@
 import tkinter as tk
-from tkinter import simpledialog
-from tkinter import messagebox
+from tkinter import simpledialog, messagebox
 import json
 from pathlib import Path
 
 class Application(tk.Frame):
-    def __init__(self, root):
-        super().__init__(root, width=420, height=320, borderwidth=4, relief="groove")
+    MASK = "********"  # パスワード非表示設定時の表示文字列
+    
+    def __init__(self, root=None):
+        super().__init__(root, width=800, height=600)
         self.pack()
         self.pack_propagate(False)
         self.root = root
-        self.items=[]
+        self.items: list[dict[str, str]] = []
+        self.show_pw = tk.BooleanVar(value=True)  # パスワード表示/非表示の切り替え用
         self.create_widgets()
         self.load_items()
         self.refresh_listbox()
 
-    def create_widgets(self): #self.itemsとListboxの同期はインデックスで管理する。(並び順の挙動に注意。)
-        self.listbox = tk.Listbox(self, width=50, height=15, selectmode="browse")
-        self.listbox.pack(fill="both", expand=True, padx=10, pady=10)
+    def create_widgets(self):  #self.itemsとListboxの同期はインデックスで管理する。(並び順の挙動に注意。)
+        # Listbox+Scrollbar用のFrame
+        list_frame = tk.Frame(self)
+        list_frame.pack(padx=10, pady=10, fill="both", expand=True)
+        
+        scrolbar = tk.Scrollbar(list_frame)
+        scrolbar.pack(side="right", fill="y")
 
-        add_btn = tk.Button(self)
-        add_btn["text"] = "追加"
-        add_btn["command"] = self.add_item
-        add_btn.pack(side="left", padx=5, pady=5)
+        self.listbox = tk.Listbox(list_frame, yscrollcommand=scrolbar.set)
+        self.listbox.pack(side="left", fill="both", expand=True)
         
-        delete_btn = tk.Button(self)
-        delete_btn["text"] = "削除"
-        delete_btn["command"] = self.delete_item
-        delete_btn.pack(side="left", padx=5, pady=5)
+        scrolbar.config(command=self.listbox.yview)
         
-        copy_id_btn = tk.Button(self)
-        copy_id_btn["text"] = "IDコピー"
-        copy_id_btn["command"] = self.copy_id
-        copy_id_btn.pack(side="left", padx=5, pady=5)
+        # ボタン用のFrame
+        btn_frame = tk.Frame(self)
+        btn_frame.pack(pady=5, fill="x")
+        
+        add_btn = tk.Button(btn_frame, text="追加", command=self.add_item)
+        add_btn.pack(side="left", padx=5)
 
-        copy_pw_btn = tk.Button(self)
-        copy_pw_btn["text"] = "PWコピー"
-        copy_pw_btn["command"] = self.copy_pw
-        copy_pw_btn.pack(side="left", padx=5, pady=5)
+        delete_btn = tk.Button(btn_frame, text="削除", command=self.delete_item)
+        delete_btn.pack(side="left", padx=5)
         
-        save_btn = tk.Button(self)
-        save_btn["text"] = "保存"
-        save_btn["command"] = self.save_items
-        save_btn.pack(side="left", padx=5, pady=5)
-    
+        copy_id_btn = tk.Button(btn_frame, text="IDコピー", command=self.copy_id)
+        copy_id_btn.pack(side="left", padx=5)
+
+        copy_pw_btn = tk.Button(btn_frame, text="PWコピー", command=self.copy_pw)
+        copy_pw_btn.pack(side="left", padx=5)
+        
+        save_btn = tk.Button(btn_frame, text="保存", command=self.save_items)
+        save_btn.pack(side="left", padx=5)
+        
+        show_pw_cb = tk.Checkbutton(btn_frame, text="パスワード表示", variable=self.show_pw, command=self.on_toggle_show_pw)
+        show_pw_cb.pack(side="right", padx=5)
+
     def delete_item(self):
         selected=self.listbox.curselection()
         if not selected:
@@ -95,33 +103,65 @@ class Application(tk.Frame):
         self.root.clipboard_append(pw)
         self.root.update()
 
-    def save_items(self):
+    def save_items(self, show_message: bool = True):
         # 保存先 (プロジェクト直下の data/locka.json)
         data_dir = Path("data")
         data_dir.mkdir(exist_ok=True)
         path = data_dir / "locka.json"
         
+        payload = {
+            "items": self.items,
+            "settings": {
+                "show_pw": self.show_pw.get()
+            }
+        }
+        
         with path.open("w", encoding="utf-8") as f:
-            json.dump(self.items, f, ensure_ascii=False, indent=2)
-            
-        self.show_saved_message()
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        
+        if show_message:  #　保存完了メッセージの表示/非表示切り替え
+            self.show_saved_message()
         
     def show_saved_message(self):
         messagebox.showinfo("保存", "保存しました。")
         
     def load_items(self):
         path = Path("data") / "locka.json"
-        if path.exists():
-            with path.open("r", encoding="utf-8") as f:
-                self.items = json.load(f)
-        else:
+        if not path.exists():
             self.items = []
+            return
+        
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                payload = json.load(f)
+        except json.JSONDecodeError:
+            messagebox.showerror("エラー", "JSONファイルが読み込めないため、空のリストで起動します。")
+            self.items = []
+            return
+        
+        # 旧型式の取り込み: itemsだけの配列だった場合
+        if isinstance(payload, list):
+            self.items = payload
+            return
+        
+        # 新型式の取り込み: settings付き
+        self.items = payload.get("items", [])
+        settings = payload.get("settings", {})
+        self.show_pw.set(settings.get("show_pw", True))  # show_pwがない場合はデフォルトをTrueとする。
             
+    def format_item(self, item: dict[str, str]) -> str:
+        pw_text = item['pw'] if self.show_pw.get() else self.MASK
+        return f"{item['site']} | ID: {item['id']} | PW: {pw_text}"
+    
     def refresh_listbox(self):
         self.listbox.delete(0, tk.END)
         for item in self.items:
-            self.listbox.insert(tk.END, f"{item['site']} | {item['id']} | {item['pw']}")
-        
+            self.listbox.insert(tk.END, self.format_item(item))
+
+    def on_toggle_show_pw(self):
+        self.refresh_listbox()
+        self.save_items(show_message=False)
+                
 root=tk.Tk()
 root.title("Locka")
 root.geometry("800x600")
