@@ -13,12 +13,29 @@ class Application(tk.Frame):
         self.pack_propagate(False)
         self.root = root
         self.items: list[dict[str, str]] = []
+        self.search_var = tk.StringVar(value="")
+        self.search_var.trace_add("write", lambda *_: self.refresh_listbox())
         self.show_pw = tk.BooleanVar(value=True)  # パスワード表示/非表示の切り替え用
         self.create_widgets()
         self.load_items()
         self.refresh_listbox()
 
     def create_widgets(self):  #self.itemsとListboxの同期はインデックスで管理する。(並び順の挙動に注意。)
+        # ===== 検索バー =====
+        top_frame = tk.Frame(self)
+        top_frame.pack(fill="x", padx=10, pady=(10, 5))
+        
+        # 左に余白を作るためのダミーラベル
+        tk.Label(top_frame, text="").pack(side="left", fill="x", expand=True)
+        
+        tk.Label(top_frame, text="検索:").pack(side="left")
+        
+        self.search_entry = tk.Entry(top_frame, textvariable=self.search_var, width=24)
+        self.search_entry.pack(side="left", padx=(5, 0))
+        
+        clear_btn = tk.Button(top_frame, text="x", command=self.clear_search, width=2)
+        clear_btn.pack(side="left", padx=(5, 0))
+        
         # Listbox+Scrollbar用のFrame
         list_frame = tk.Frame(self)
         list_frame.pack(padx=10, pady=10, fill="both", expand=True)
@@ -156,7 +173,14 @@ class Application(tk.Frame):
     
     def refresh_listbox(self):
         self.listbox.delete(0, tk.END)
+        
+        keyword = self.search_var.get().strip().lower()
+        
         for item in self.items:
+            # 検索対象フィルタリング
+            haystack = item.get("site", "").lower()
+            if keyword and keyword not in haystack:
+                continue
             self.listbox.insert(tk.END, self.format_item(item))
 
     def on_toggle_show_pw(self):
@@ -239,6 +263,10 @@ class Application(tk.Frame):
         self.items[index] = {"site": site, "id": user_id, "pw": pw}
         self.refresh_listbox()
         self.commit_change("編集")
+        
+    def clear_search(self):
+        self.search_var.set("")
+        self.search_entry.focus_set()
         
 
 root=tk.Tk()

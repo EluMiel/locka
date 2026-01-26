@@ -24,6 +24,11 @@
       "site": "Amazon",
       "id": "user",
       "pw": "1234"
+    },
+    {
+      "site": "GoogleMap",
+      "id": "",
+      "pw": "123"
     }
   ],
   "settings": {
