@@ -49,6 +49,11 @@ class Application(tk.Frame):
         
         show_pw_cb = tk.Checkbutton(btn_frame, text="パスワード表示", variable=self.show_pw, command=self.on_toggle_show_pw)
         show_pw_cb.pack(side="right", padx=5)
+        
+        edit_btn = tk.Button(btn_frame, text="編集", command=self.edit_item)
+        edit_btn.pack(side="left", padx=5)
+        
+        
 
     def delete_item(self):
         selected=self.listbox.curselection()
@@ -208,6 +213,33 @@ class Application(tk.Frame):
 
         finally:
             self.refresh_listbox()
+            
+    def edit_item(self):
+        selected = self.listbox.curselection()
+        if not selected:
+            return
+        
+        index = selected[0]
+        current = self.items[index]
+        
+        # 既存値を初期値にして入力させる(Cancelで中断)
+        site = simpledialog.askstring("編集", "サイト名を入力してください。", initialvalue=current["site"], parent=self.root)
+        if site is None:
+            return
+        
+        user_id = simpledialog.askstring("編集", "IDを入力してください。", initialvalue=current["id"], parent=self.root)
+        if user_id is None:
+            return
+        
+        pw = simpledialog.askstring("編集", "パスワードを入力してください。", initialvalue=current["pw"], parent=self.root)
+        if pw is None:
+            return
+        
+        # 同じ行を上書き
+        self.items[index] = {"site": site, "id": user_id, "pw": pw}
+        self.refresh_listbox()
+        self.commit_change("編集")
+        
 
 root=tk.Tk()
 root.title("Locka")

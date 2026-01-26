@@ -2,8 +2,8 @@
   "items": [
     {
       "site": "Google",
-      "id": "testuser",
-      "pw": "password123"
+      "id": "test",
+      "pw": "9876"
     },
     {
       "site": "Facebook",
