@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox
+from tkinter import simpledialog, messagebox, ttk
 import json
 from pathlib import Path
 from datetime import datetime
@@ -8,14 +8,29 @@ class Application(tk.Frame):
     MASK = "********"  # パスワード非表示設定時の表示文字列
     
     def __init__(self, root=None):
-        super().__init__(root, width=800, height=600)
-        self.pack()
-        self.pack_propagate(False)
+        super().__init__(root)
         self.root = root
+        
+        # ウィンドウ最小サイズ設定
+        self.root.minsize(800, 600)
+
+        self.pack(fill="both", expand=True)
+
+        # ttkテーマ
+        style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except tk.TclError:
+            pass  
+        
+        # フォント統一
+        self.root.option_add("*Font", "Segoe UI 10")
+
         self.items: list[dict[str, str]] = []
         self.search_var = tk.StringVar(value="")
         self.search_var.trace_add("write", lambda *_: self.refresh_listbox())
         self.show_pw = tk.BooleanVar(value=True)  # パスワード表示/非表示の切り替え用
+        
         self.create_widgets()
         self.load_items()
         self.refresh_listbox()
