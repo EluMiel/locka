@@ -22,7 +22,43 @@ class Application(tk.Frame):
         try:
             style.theme_use("clam")
         except tk.TclError:
-            pass  
+            pass
+
+        BG = "#F9FCFB"  # 白～薄いグリーンベース
+        BORDER = "#D4EFE7"  # 薄いグリーン（枠線）
+        TEXT = "#1A4D3E"  # ダークグリーン
+        ACCENT = "#3A9B7E"  # テール（ホバー時）
+        MINT = "#B8E5DD"  # ライトグリーン（デフォルト）
+
+        style.configure("TFrame", background=BG)
+        style.configure("TLabel", background=BG, foreground=TEXT)
+        style.configure("TSeparator", background=BORDER)
+
+        style.configure("TButton", padding=(12,6))
+        style.map("TButton",
+            background=[("active", ACCENT), ("!active", MINT)],
+            foreground=[("active", TEXT), ("!active", TEXT)]
+        )
+        
+        # クリアボタン用のカスタムスタイル
+        style.configure("Clear.TButton", padding=(12,6))
+        style.map("Clear.TButton",
+            background=[("active", BORDER), ("!active", BG)],
+            foreground=[("active", TEXT), ("!active", TEXT)]
+        )
+        
+        # スクロールバーのスタイル
+        style.configure("Vertical.TScrollbar", background=MINT, troughcolor=BG, bordercolor=BORDER, lightcolor=MINT, darkcolor=ACCENT)
+        style.map("Vertical.TScrollbar",
+            background=[("active", ACCENT), ("!active", MINT)]
+        )
+        
+        # チェックボタンのスタイル
+        style.configure("TCheckbutton", background=BG, foreground=TEXT)
+        style.map("TCheckbutton",
+            background=[("active", BORDER), ("!active", BG)],
+            foreground=[("active", TEXT), ("!active", TEXT)]
+        )
         
         # フォント統一
         self.root.option_add("*Font", ("Segoe UI", 10))
@@ -52,7 +88,7 @@ class Application(tk.Frame):
         self.search_entry = ttk.Entry(top_frame, textvariable=self.search_var, width=28)
         self.search_entry.grid(row=0, column=2)
 
-        clear_btn = ttk.Button(top_frame, text="×", command=self.clear_search, width=3)
+        clear_btn = ttk.Button(top_frame, text="×", command=self.clear_search, width=3, style="Clear.TButton")
         clear_btn.grid(row=0, column=3, padx=(6, 0))
 
     # 区切り線
@@ -67,7 +103,7 @@ class Application(tk.Frame):
         scrollbar = ttk.Scrollbar(list_frame)
         scrollbar.grid(row=0, column=1, sticky="ns")
     # ListboxはtkのままでOK（ttkに相当がない）
-        self.listbox = tk.Listbox(list_frame,yscrollcommand=scrollbar.set,activestyle="none",height=12)
+        self.listbox = tk.Listbox(list_frame,yscrollcommand=scrollbar.set,activestyle="none",height=12,background="#F9FCFB",foreground="#1A4D3E",selectbackground="#3A9B7E",selectforeground="#F9FCFB",borderwidth=1,relief="solid",bd=1)
         self.listbox.grid(row=0, column=0, sticky="nsew")
         scrollbar.config(command=self.listbox.yview)
 
