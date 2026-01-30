@@ -11,8 +11,9 @@ class Application(tk.Frame):
         super().__init__(root)
         self.root = root
         
-        # ウィンドウ最小サイズ設定
-        self.root.minsize(800, 600)
+        # ウィンドウサイズ設定
+        self.root.geometry("600x300")
+        self.root.minsize(600, 300)
 
         self.pack(fill="both", expand=True)
 
@@ -24,7 +25,7 @@ class Application(tk.Frame):
             pass  
         
         # フォント統一
-        self.root.option_add("*Font", "Segoe UI 10")
+        self.root.option_add("*Font", ("Segoe UI", 10))
 
         self.items: list[dict[str, str]] = []
         self.search_var = tk.StringVar(value="")
@@ -35,57 +36,55 @@ class Application(tk.Frame):
         self.load_items()
         self.refresh_listbox()
 
-    def create_widgets(self):  #self.itemsとListboxの同期はインデックスで管理する。(並び順の挙動に注意。)
-        # ===== 検索バー =====
-        top_frame = tk.Frame(self)
-        top_frame.pack(fill="x", padx=10, pady=(10, 5))
-        
-        # 左に余白を作るためのダミーラベル
-        tk.Label(top_frame, text="").pack(side="left", fill="x", expand=True)
-        
-        tk.Label(top_frame, text="検索:").pack(side="left")
-        
-        self.search_entry = tk.Entry(top_frame, textvariable=self.search_var, width=24)
-        self.search_entry.pack(side="left", padx=(5, 0))
-        
-        clear_btn = tk.Button(top_frame, text="x", command=self.clear_search, width=2)
-        clear_btn.pack(side="left", padx=(5, 0))
-        
-        # Listbox+Scrollbar用のFrame
-        list_frame = tk.Frame(self)
-        list_frame.pack(padx=10, pady=10, fill="both", expand=True)
-        
-        scrolbar = tk.Scrollbar(list_frame)
-        scrolbar.pack(side="right", fill="y")
+    def create_widgets(self):
+    # ===== 全体レイアウト（上/中/下） =====
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
 
-        self.listbox = tk.Listbox(list_frame, yscrollcommand=scrolbar.set)
-        self.listbox.pack(side="left", fill="both", expand=True)
-        
-        scrolbar.config(command=self.listbox.yview)
-        
-        # ボタン用のFrame
-        btn_frame = tk.Frame(self)
-        btn_frame.pack(pady=5, fill="x")
-        
-        add_btn = tk.Button(btn_frame, text="追加", command=self.add_item)
-        add_btn.pack(side="left", padx=5)
+    # ---- 上：検索バー ----
+        top_frame = ttk.Frame(self, padding=(10, 10, 10, 5))
+        top_frame.grid(row=0, column=0, sticky="ew")
+        top_frame.grid_columnconfigure(0, weight=1)  # 左の空きを伸ばして右寄せにする
 
-        delete_btn = tk.Button(btn_frame, text="削除", command=self.delete_item)
-        delete_btn.pack(side="left", padx=5)
-        
-        copy_id_btn = tk.Button(btn_frame, text="IDコピー", command=self.copy_id)
-        copy_id_btn.pack(side="left", padx=5)
+        ttk.Label(top_frame, text="").grid(row=0, column=0, sticky="ew")  # 伸びるダミー（右寄せ用）
+        ttk.Label(top_frame, text="検索:").grid(row=0, column=1, padx=(0, 6))
 
-        copy_pw_btn = tk.Button(btn_frame, text="PWコピー", command=self.copy_pw)
-        copy_pw_btn.pack(side="left", padx=5)
-        
-        show_pw_cb = tk.Checkbutton(btn_frame, text="パスワード表示", variable=self.show_pw, command=self.on_toggle_show_pw)
-        show_pw_cb.pack(side="right", padx=5)
-        
-        edit_btn = tk.Button(btn_frame, text="編集", command=self.edit_item)
-        edit_btn.pack(side="left", padx=5)
-        
-        
+        self.search_entry = ttk.Entry(top_frame, textvariable=self.search_var, width=28)
+        self.search_entry.grid(row=0, column=2)
+
+        clear_btn = ttk.Button(top_frame, text="×", command=self.clear_search, width=3)
+        clear_btn.grid(row=0, column=3, padx=(6, 0))
+
+    # 区切り線
+        ttk.Separator(self, orient="horizontal").grid(row=1, column=0, sticky="ew")
+
+    # ---- 中：リスト ----
+        list_frame = ttk.Frame(self, padding=(10, 10, 10, 10))
+        list_frame.grid(row=2, column=0, sticky="nsew")
+        list_frame.grid_rowconfigure(0, weight=1)
+        list_frame.grid_columnconfigure(0, weight=1)
+
+        scrollbar = ttk.Scrollbar(list_frame)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+    # ListboxはtkのままでOK（ttkに相当がない）
+        self.listbox = tk.Listbox(list_frame,yscrollcommand=scrollbar.set,activestyle="none",height=12)
+        self.listbox.grid(row=0, column=0, sticky="nsew")
+        scrollbar.config(command=self.listbox.yview)
+
+    # ---- 下：操作ボタン群 ----
+        btn_frame = ttk.Frame(self, padding=(10, 0, 10, 10))
+        btn_frame.grid(row=3, column=0, sticky="ew")
+        btn_frame.grid_columnconfigure(10, weight=1)  # 右側のチェックを右寄せする
+
+    # ボタンサイズ統一（幅を揃えると一気に“整ってる感”出る）
+        btn_w = 10
+        ttk.Button(btn_frame, text="追加", command=self.add_item, width=btn_w).grid(row=0, column=0, padx=(0, 6))
+        ttk.Button(btn_frame, text="削除", command=self.delete_item, width=btn_w).grid(row=0, column=1, padx=(0, 6))
+        ttk.Button(btn_frame, text="IDコピー", command=self.copy_id, width=btn_w).grid(row=0, column=2, padx=(0, 6))
+        ttk.Button(btn_frame, text="PWコピー", command=self.copy_pw, width=btn_w).grid(row=0, column=3, padx=(0, 6))
+        ttk.Button(btn_frame, text="編集", command=self.edit_item, width=btn_w).grid(row=0, column=4, padx=(0, 6))
+
+        ttk.Checkbutton(btn_frame,text="パスワード表示",variable=self.show_pw,command=self.on_toggle_show_pw).grid(row=0, column=11, sticky="e")    
 
     def delete_item(self):
         selected=self.listbox.curselection()
