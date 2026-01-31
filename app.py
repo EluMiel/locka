@@ -3,6 +3,8 @@ from tkinter import simpledialog, messagebox, ttk
 import json
 from pathlib import Path
 from datetime import datetime
+import os
+from security import encrypt_items, decrypt_items
 
 class Application(tk.Frame):
     MASK = "********"  # パスワード非表示設定時の表示文字列
@@ -171,51 +173,43 @@ class Application(tk.Frame):
         self.root.clipboard_append(pw)
         self.root.update()
 
-    def save_items(self, show_message: bool = True):
-        # 保存先 (プロジェクト直下の data/locka.json)
+    def save_items(self):
         data_dir = Path("data")
         data_dir.mkdir(exist_ok=True)
-        path = data_dir / "locka.json"
+        path = data_dir / "locka.enc"
+
+        master = os.environ.get("LOCKA_MASTER")
+        if not master:
+            messagebox.showerror("エラー", "環境変数 LOCKA_MASTER が未設定です。（V3-3でダイアログ化予定）")
+            return
+
+        blob = encrypt_items(self.items, master_password=master)
         
-        payload = {
-            "items": self.items,
-            "settings": {
-                "show_pw": self.show_pw.get()
-            }
-        }
-        
-        with path.open("w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-        
-        if show_message:  #　保存完了メッセージの表示/非表示切り替え
-            self.show_saved_message()
+        with path.open("wb") as f:
+            f.write(blob)
+
         
     def show_saved_message(self):
         messagebox.showinfo("保存", "保存しました。")
         
     def load_items(self):
-        path = Path("data") / "locka.json"
+        path = Path("data") / "locka.enc"
         if not path.exists():
             self.items = []
             return
-        
-        try:
-            with path.open("r", encoding="utf-8") as f:
-                payload = json.load(f)
-        except json.JSONDecodeError:
-            messagebox.showerror("エラー", "JSONファイルが読み込めないため、空のリストで起動します。")
+
+        master = os.environ.get("LOCKA_MASTER")
+        if not master:
+            messagebox.showerror("エラー", "環境変数 LOCKA_MASTER が未設定です。（V3-3でダイアログ化予定）")
             self.items = []
             return
-        
-        # 旧型式の取り込み: itemsだけの配列だった場合
-        if isinstance(payload, list):
-            self.items = payload
-            return
-        
-        # 新型式の取り込み: settings付き
-        self.items = payload.get("items", [])
-        settings = payload.get("settings", {})
-        self.show_pw.set(settings.get("show_pw", True))  # show_pwがない場合はデフォルトをTrueとする。
+
+        blob = path.read_bytes()
+        try:
+            self.items = decrypt_items(blob, master_password=master)
+        except ValueError as e:
+            messagebox.showerror("復号エラー", str(e))
+            self.items = []
             
     def format_item(self, item: dict[str, str]) -> str:
         pw_text = item['pw'] if self.show_pw.get() else self.MASK
@@ -235,7 +229,7 @@ class Application(tk.Frame):
 
     def on_toggle_show_pw(self):
         self.refresh_listbox()
-        self.save_items(show_message=False)
+        self.commit_change("パスワード表示切り替え")
                 
     def write_unseved_backup(self, payload: dict) -> Path:
         """保存に失敗した際、現在のメモリ上の状態をバックアップに保存する。"""
@@ -265,7 +259,7 @@ class Application(tk.Frame):
         
         try:
             # 自動保存なのでメッセージは出さない
-            self.save_items(show_message=False)
+            self.save_items()
             
         except Exception as e:
             # 失敗した状態を退避
