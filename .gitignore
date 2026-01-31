@@ -21,5 +21,6 @@ data/*.enc
 # Locka secrets / data
 data/locka.enc
 data/locka.json
+data/locka_unsaved_*.json
 *.bak
 .env
