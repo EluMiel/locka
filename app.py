@@ -24,40 +24,40 @@ class Application(tk.Frame):
         except tk.TclError:
             pass
 
-        BG = "#F9FCFB"  # 白～薄いグリーンベース
-        BORDER = "#D4EFE7"  # 薄いグリーン（枠線）
-        TEXT = "#1A4D3E"  # ダークグリーン
-        ACCENT = "#3A9B7E"  # テール（ホバー時）
-        MINT = "#B8E5DD"  # ライトグリーン（デフォルト）
+        self.BG = "#F4F9FC"  # 白～薄いマリンブルーベース
+        self.BORDER = "#C7DCE8"  # 淡いブルー（枠線）
+        self.TEXT = "#0B2E3A"  # ディープネイビー
+        self.ACCENT = "#1B7AA6"  # マリンブルー（ホバー時）
+        self.MINT = "#A8D3E6"  # ライトブルー（デフォルト）
 
-        style.configure("TFrame", background=BG)
-        style.configure("TLabel", background=BG, foreground=TEXT)
-        style.configure("TSeparator", background=BORDER)
+        style.configure("TFrame", background=self.BG)
+        style.configure("TLabel", background=self.BG, foreground=self.TEXT)
+        style.configure("TSeparator", background=self.BORDER)
 
         style.configure("TButton", padding=(12,6))
         style.map("TButton",
-            background=[("active", ACCENT), ("!active", MINT)],
-            foreground=[("active", TEXT), ("!active", TEXT)]
+            background=[("active", self.ACCENT), ("!active", self.MINT)],
+            foreground=[("active", self.TEXT), ("!active", self.TEXT)]
         )
         
         # クリアボタン用のカスタムスタイル
         style.configure("Clear.TButton", padding=(12,6))
         style.map("Clear.TButton",
-            background=[("active", BORDER), ("!active", BG)],
-            foreground=[("active", TEXT), ("!active", TEXT)]
+            background=[("active", self.BORDER), ("!active", self.BG)],
+            foreground=[("active", self.TEXT), ("!active", self.TEXT)]
         )
         
         # スクロールバーのスタイル
-        style.configure("Vertical.TScrollbar", background=MINT, troughcolor=BG, bordercolor=BORDER, lightcolor=MINT, darkcolor=ACCENT)
+        style.configure("Vertical.TScrollbar", background=self.MINT, troughcolor=self.BG, bordercolor=self.BORDER, lightcolor=self.MINT, darkcolor=self.ACCENT)
         style.map("Vertical.TScrollbar",
-            background=[("active", ACCENT), ("!active", MINT)]
+            background=[("active", self.ACCENT), ("!active", self.MINT)]
         )
         
         # チェックボタンのスタイル
-        style.configure("TCheckbutton", background=BG, foreground=TEXT)
+        style.configure("TCheckbutton", background=self.BG, foreground=self.TEXT)
         style.map("TCheckbutton",
-            background=[("active", BORDER), ("!active", BG)],
-            foreground=[("active", TEXT), ("!active", TEXT)]
+            background=[("active", self.BORDER), ("!active", self.BG)],
+            foreground=[("active", self.TEXT), ("!active", self.TEXT)]
         )
         
         # フォント統一
@@ -103,7 +103,7 @@ class Application(tk.Frame):
         scrollbar = ttk.Scrollbar(list_frame)
         scrollbar.grid(row=0, column=1, sticky="ns")
     # ListboxはtkのままでOK（ttkに相当がない）
-        self.listbox = tk.Listbox(list_frame,yscrollcommand=scrollbar.set,activestyle="none",height=12,background="#F9FCFB",foreground="#1A4D3E",selectbackground="#3A9B7E",selectforeground="#F9FCFB",borderwidth=1,relief="solid",bd=1)
+        self.listbox = tk.Listbox(list_frame,yscrollcommand=scrollbar.set,activestyle="none",height=12,background=self.BG,foreground=self.TEXT,selectbackground=self.ACCENT,selectforeground=self.BG,borderwidth=1,relief="solid",bd=1)
         self.listbox.grid(row=0, column=0, sticky="nsew")
         scrollbar.config(command=self.listbox.yview)
 
