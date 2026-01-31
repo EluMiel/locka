@@ -33,7 +33,7 @@ def _derive_fernet_key(master_password: str, salt: bytes, iters: int) -> bytes:
     return base64.urlsafe_b64encode(raw_key)
 
 
-def encrypt_items(items: list[dict[str, str]], master_password: str) -> bytes:
+def encrypt_items(items: Any, master_password: str) -> bytes:
     """
     items（Pythonのlist/dict）を暗号化して、ファイル保存用bytesを返す
     """
@@ -55,23 +55,26 @@ def encrypt_items(items: list[dict[str, str]], master_password: str) -> bytes:
     return json.dumps(payload.__dict__, ensure_ascii=False, indent=2).encode("utf-8")
 
 
-def decrypt_items(blob: bytes, master_password: str) -> list[dict[str, str]]:
+def decrypt_items(blob: bytes, master_password: str) -> Any:
     """
-    暗号化ファイルbytesを復号してitemsを返す
+    暗号化ファイル(bytes)を復号して payload(dict) を返す
     """
-    meta: dict[str, Any] = json.loads(blob.decode("utf-8"))
-    salt = base64.b64decode(meta["salt_b64"])
-    iters = int(meta["iters"])
-    token = meta["token"].encode("utf-8")
-
-    key = _derive_fernet_key(master_password, salt=salt, iters=iters)
-    f = Fernet(key)
     try:
-        plain = f.decrypt(token)
-    except InvalidToken as e:
-        raise ValueError("マスターパスワードが異なるか、ファイルが壊れています。") from e
+        meta: dict[str, Any] = json.loads(blob.decode("utf-8"))
 
-    items = json.loads(plain.decode("utf-8"))
-    if not isinstance(items, list):
-        raise ValueError("復号データ形式が不正です。")
-    return items
+        salt = base64.b64decode(meta["salt_b64"])
+        iters = int(meta["iters"])
+        token = meta["token"].encode("utf-8")
+
+        key = _derive_fernet_key(master_password, salt=salt, iters=iters)
+        f = Fernet(key)
+
+        plain = f.decrypt(token)
+        data = json.loads(plain.decode("utf-8"))
+
+        return data
+
+    except InvalidToken:
+        raise ValueError("マスターパスワードが異なるか、ファイルが壊れています。")
+    except Exception as e:
+        raise ValueError(f"復号に失敗しました。: {e}")
