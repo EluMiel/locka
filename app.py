@@ -189,9 +189,6 @@ class Application(tk.Frame):
             f.write(blob)
 
         
-    def show_saved_message(self):
-        messagebox.showinfo("保存", "保存しました。")
-        
     def load_items(self):
         path = Path("data") / "locka.enc"
         if not path.exists():
@@ -231,7 +228,7 @@ class Application(tk.Frame):
         self.refresh_listbox()
         self.commit_change("パスワード表示切り替え")
                 
-    def write_unseved_backup(self, payload: dict) -> Path:
+    def write_unsaved_backup(self, payload: dict) -> Path:
         """保存に失敗した際、現在のメモリ上の状態をバックアップに保存する。"""
         data_dir = Path("data")
         data_dir.mkdir(exist_ok=True)
@@ -264,7 +261,7 @@ class Application(tk.Frame):
         except Exception as e:
             # 失敗した状態を退避
             try:
-                backup_path = self.write_unseved_backup(payload)
+                backup_path = self.write_unsaved_backup(payload)
                 backup_msg = f"\nバックアップファイル: {backup_path}"
             except Exception:
                 backup_msg = "\nバックアップファイルの作成に失敗しました。"
