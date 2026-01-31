@@ -9,9 +9,10 @@ from security import encrypt_items, decrypt_items
 class Application(tk.Frame):
     MASK = "********"  # パスワード非表示設定時の表示文字列
     
-    def __init__(self, root=None):
+    def __init__(self, root=None, master_password: str = ""):
         super().__init__(root)
         self.root = root
+        self.master_password = master_password
         
         # ウィンドウサイズ設定
         self.root.geometry("600x300")
