@@ -18,5 +18,8 @@ data/*.enc
 # Logs
 *.log
 
-# Env file
+# Locka secrets / data
+data/locka.enc
+data/locka.json
+*.bak
 .env
