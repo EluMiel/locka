@@ -3,11 +3,13 @@ from tkinter import simpledialog, messagebox, ttk
 import json
 from pathlib import Path
 from datetime import datetime
-import os
 from security import encrypt_items, decrypt_items
+import time
 
 class Application(tk.Frame):
     MASK = "********"  # パスワード非表示設定時の表示文字列
+    IDLE_TIMEOUT_SEC = 2 * 60  # 自動ロックまでの無操作時間（秒）
+    IDLE_CHECK_MS = 1000  # 無操作チェック間隔（ミリ秒）
     
     def __init__(self, root=None, master_password: str = ""):
         super().__init__(root)
@@ -39,8 +41,8 @@ class Application(tk.Frame):
 
         style.configure("TButton", padding=(12,6))
         style.map("TButton",
-            background=[("active", self.ACCENT), ("!active", self.MINT)],
-            foreground=[("active", self.TEXT), ("!active", self.TEXT)]
+            background=[("disabled", self.BORDER), ("active", self.ACCENT), ("!active", self.MINT)],
+            foreground=[("disabled", "#9BA5AD"), ("active", self.TEXT), ("!active", self.TEXT)]
         )
         
         # クリアボタン用のカスタムスタイル
@@ -71,9 +73,17 @@ class Application(tk.Frame):
         self.search_var.trace_add("write", lambda *_: self.refresh_listbox())
         self.show_pw = tk.BooleanVar(value=True)  # パスワード表示/非表示の切り替え用
         
+        self.locked = False
+        self.unlocking = False
+        self.last_activity = time.monotonic()
+        
         self.create_widgets()
         self.load_items()
         self.refresh_listbox()
+        
+        self._setup_activity_hooks()
+        self._start_idle_watch()
+            
 
     def create_widgets(self):
     # ===== 全体レイアウト（上/中/下） =====
@@ -91,8 +101,8 @@ class Application(tk.Frame):
         self.search_entry = ttk.Entry(top_frame, textvariable=self.search_var, width=28)
         self.search_entry.grid(row=0, column=2)
 
-        clear_btn = ttk.Button(top_frame, text="×", command=self.clear_search, width=3, style="Clear.TButton")
-        clear_btn.grid(row=0, column=3, padx=(6, 0))
+        self.clear_btn = ttk.Button(top_frame, text="×", command=self.clear_search, width=3, style="Clear.TButton")
+        self.clear_btn.grid(row=0, column=3, padx=(6, 0))
 
     # 区切り線
         ttk.Separator(self, orient="horizontal").grid(row=1, column=0, sticky="ew")
@@ -105,8 +115,11 @@ class Application(tk.Frame):
 
         scrollbar = ttk.Scrollbar(list_frame)
         scrollbar.grid(row=0, column=1, sticky="ns")
-    # ListboxはtkのままでOK（ttkに相当がない）
-        self.listbox = tk.Listbox(list_frame,yscrollcommand=scrollbar.set,activestyle="none",height=12,background=self.BG,foreground=self.TEXT,selectbackground=self.ACCENT,selectforeground=self.BG,borderwidth=1,relief="solid",bd=1)
+
+        self.listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, activestyle="none", height=12,
+                                   background=self.BG, foreground=self.TEXT,
+                                   selectbackground=self.ACCENT, selectforeground=self.BG,
+                                   borderwidth=1, relief="solid", bd=1)
         self.listbox.grid(row=0, column=0, sticky="nsew")
         scrollbar.config(command=self.listbox.yview)
 
@@ -117,13 +130,19 @@ class Application(tk.Frame):
 
     # ボタンサイズ統一（幅を揃えると一気に“整ってる感”出る）
         btn_w = 10
-        ttk.Button(btn_frame, text="追加", command=self.add_item, width=btn_w).grid(row=0, column=0, padx=(0, 6))
-        ttk.Button(btn_frame, text="削除", command=self.delete_item, width=btn_w).grid(row=0, column=1, padx=(0, 6))
-        ttk.Button(btn_frame, text="IDコピー", command=self.copy_id, width=btn_w).grid(row=0, column=2, padx=(0, 6))
-        ttk.Button(btn_frame, text="PWコピー", command=self.copy_pw, width=btn_w).grid(row=0, column=3, padx=(0, 6))
-        ttk.Button(btn_frame, text="編集", command=self.edit_item, width=btn_w).grid(row=0, column=4, padx=(0, 6))
+        self.btn_add = ttk.Button(btn_frame, text="追加", command=self.add_item, width=btn_w)
+        self.btn_add.grid(row=0, column=0, padx=(0, 6))
+        self.btn_delete = ttk.Button(btn_frame, text="削除", command=self.delete_item, width=btn_w)
+        self.btn_delete.grid(row=0, column=1, padx=(0, 6))
+        self.btn_copy_id = ttk.Button(btn_frame, text="IDコピー", command=self.copy_id, width=btn_w)
+        self.btn_copy_id.grid(row=0, column=2, padx=(0, 6))
+        self.btn_copy_pw = ttk.Button(btn_frame, text="PWコピー", command=self.copy_pw, width=btn_w)
+        self.btn_copy_pw.grid(row=0, column=3, padx=(0, 6))
+        self.btn_edit = ttk.Button(btn_frame, text="編集", command=self.edit_item, width=btn_w)
+        self.btn_edit.grid(row=0, column=4, padx=(0, 6))
 
-        ttk.Checkbutton(btn_frame,text="パスワード表示",variable=self.show_pw,command=self.on_toggle_show_pw).grid(row=0, column=11, sticky="e")    
+        self.check_show_pw = ttk.Checkbutton(btn_frame,text="パスワード表示",variable=self.show_pw,command=self.on_toggle_show_pw)
+        self.check_show_pw.grid(row=0, column=11, sticky="e")    
 
     def delete_item(self):
         selected=self.listbox.curselection()
@@ -215,6 +234,9 @@ class Application(tk.Frame):
         return f"{item['site']} | ID: {item['id']} | PW: {pw_text}"
     
     def refresh_listbox(self):
+        if self.locked:
+            return
+        
         self.listbox.delete(0, tk.END)
         
         keyword = self.search_var.get().strip().lower()
@@ -310,7 +332,81 @@ class Application(tk.Frame):
     def clear_search(self):
         self.search_var.set("")
         self.search_entry.focus_set()
-
+        
+    def _setup_activity_hooks(self):
+        """ユーザー操作を検知するためのフックを設定する。"""
+        events = ["<KeyPress>", "<Button>", "<Motion>", "<MouseWheel>"]
+        for ev in events:
+            self.root.bind_all(ev, self._touch_activity, add=True)
+            
+    def _touch_activity(self, event=None):
+        # ロック中は触っても解除しない。(解除はパス入力のみ)
+        if self.locked or self.unlocking:
+            return
+        self.last_activity = time.monotonic()
+            
+    def _start_idle_watch(self):
+        self._idle_tick()
+            
+    def _idle_tick(self):
+        if (not self.locked) and (time.monotonic() - self.last_activity >= self.IDLE_TIMEOUT_SEC):
+            self._lock()
+            
+        self.root.after(self.IDLE_CHECK_MS, self._idle_tick)
+            
+    def _lock(self):
+        self.locked = True
+        
+        # 表示を隠す
+        self.listbox.delete(0, tk.END)
+        self.listbox.insert(tk.END, "🔒 Locked")
+        
+        # 操作系ボタン無効化
+        for b in (self.btn_add, self.btn_delete, self.btn_copy_id, self.btn_copy_pw, self.btn_edit):
+            b.state(['disabled'])
+        
+        # 検索とチェックボックスも無効化
+        self.search_entry.state(['disabled'])
+        self.clear_btn.state(['disabled'])
+        self.check_show_pw.state(['disabled'])
+            
+        self.root.after(100, self._unlock_prompt)
+            
+    def _unlock_prompt(self):
+        self.unlocking = True
+        try:
+            pw = simpledialog.askstring(
+                "Locka ロック解除",
+                "マスターパスワードを入力してください。",
+                show="*",
+                parent=self.root,
+            )
+            if pw is None:
+                self.root.destroy()
+                return
+            
+            if pw != self.master_password:
+                messagebox.showerror("認証エラー", "パスワードが異なります。")
+                self.root.after(100, self._unlock_prompt)
+                return
+            
+            # ロック解除    
+            self.locked = False
+            self.last_activity = time.monotonic()
+            
+            # UI復帰
+            self.refresh_listbox()
+            for b in (self.btn_add, self.btn_delete, self.btn_copy_id, self.btn_copy_pw, self.btn_edit):
+                b.state(['!disabled'])
+            
+            # 検索とチェックボックスも有効化
+            self.search_entry.state(['!disabled'])
+            self.clear_btn.state(['!disabled'])
+            self.check_show_pw.state(['!disabled'])
+                
+        finally:
+            self.unlocking = False
+                
 
 def prompt_master_password(root: tk.Tk) -> str | None:
     """
