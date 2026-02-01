@@ -179,35 +179,36 @@ class Application(tk.Frame):
         data_dir.mkdir(exist_ok=True)
         path = data_dir / "locka.enc"
 
-        master = os.environ.get("LOCKA_MASTER")
-        if not master:
-            messagebox.showerror("エラー", "環境変数 LOCKA_MASTER が未設定です。（V3-3でダイアログ化予定）")
-            return
+        payload = {"items": self.items,"settings": {"show_pw": self.show_pw.get()},}
 
-        blob = encrypt_items(self.items, master_password=master)
-        
+        blob = encrypt_items(payload, master_password=self.master_password)
+
         with path.open("wb") as f:
             f.write(blob)
-
         
     def load_items(self):
         path = Path("data") / "locka.enc"
         if not path.exists():
             self.items = []
+            self.show_pw.set(True)
             return
-
-        master = os.environ.get("LOCKA_MASTER")
-        if not master:
-            messagebox.showerror("エラー", "環境変数 LOCKA_MASTER が未設定です。（V3-3でダイアログ化予定）")
-            self.items = []
-            return
-
         blob = path.read_bytes()
         try:
-            self.items = decrypt_items(blob, master_password=master)
+            payload = decrypt_items(blob, master_password=self.master_password)
         except ValueError as e:
             messagebox.showerror("復号エラー", str(e))
             self.items = []
+            self.show_pw.set(True)
+            return
+        # payload形式の安全策
+        if isinstance(payload, dict):
+            self.items = payload.get("items", []) or []
+            settings = payload.get("settings", {}) or {}
+            self.show_pw.set(bool(settings.get("show_pw", True)))
+        else:
+            # 旧形式（listだけ保存してた場合）への保険
+            self.items = payload if isinstance(payload, list) else []
+            self.show_pw.set(True)
             
     def format_item(self, item: dict[str, str]) -> str:
         pw_text = item['pw'] if self.show_pw.get() else self.MASK
@@ -309,11 +310,72 @@ class Application(tk.Frame):
     def clear_search(self):
         self.search_var.set("")
         self.search_entry.focus_set()
-        
 
-root=tk.Tk()
+
+def prompt_master_password(root: tk.Tk) -> str | None:
+    """
+    既存encがあれば「復号できるパス」を求める。
+    なければ「新規パス作成（2回確認）」を行う。
+    """
+    enc_path = Path("data") / "locka.enc"
+    root.withdraw()  # 先にメイン窓を隠す
+
+    if enc_path.exists():
+        # 既存データ → 正しいパスが入るまでループ（キャンセルで終了）
+        while True:
+            pw = simpledialog.askstring(
+                "Locka 認証",
+                "マスターパスワードを入力してください。",
+                show="*",
+                parent=root,
+            )
+            if pw is None:
+                return None
+
+            try:
+                blob = enc_path.read_bytes()
+                decrypt_items(blob, master_password=pw)  # 復号できるかチェック
+                return pw
+            except Exception:
+                messagebox.showerror("認証エラー", "パスワードが異なるか、データが壊れています。")
+    else:
+        # 初回 → 新規作成（2回入力）
+        while True:
+            pw1 = simpledialog.askstring(
+                "Locka",
+                "新しいマスターパスワードを設定してください。",
+                show="*",
+                parent=root,
+            )
+            if pw1 is None:
+                return None
+            if pw1.strip() == "":
+                messagebox.showwarning("入力エラー", "空のパスワードは設定できません。")
+                continue
+            pw2 = simpledialog.askstring(
+                "Locka",
+                "確認のためもう一度入力してください。",
+                show="*",
+                parent=root,
+            )
+            if pw2 is None:
+                return None
+            if pw1 != pw2:
+                messagebox.showerror("確認エラー", "パスワードが一致しません。もう一度設定してください。")
+                continue
+            return pw1
+
+
+root = tk.Tk()
 root.title("Locka")
 root.geometry("800x600")
 
-app=Application(root)
-app.mainloop()
+master = prompt_master_password(root)
+if master is None:
+    root.destroy()
+    raise SystemExit
+
+app = Application(root, master_password=master)
+
+root.deiconify()   # 認証できたら表示
+root.mainloop()
