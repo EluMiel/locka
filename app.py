@@ -46,7 +46,7 @@ class Application(tk.Frame):
         )
         
         # クリアボタン用のカスタムスタイル
-        style.configure("Clear.TButton", padding=(12,6))
+        style.configure("Clear.TButton", padding=(4,4))
         style.map("Clear.TButton",
             background=[("active", self.BORDER), ("!active", self.BG)],
             foreground=[("active", self.TEXT), ("!active", self.TEXT)]
