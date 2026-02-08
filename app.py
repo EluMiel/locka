@@ -165,7 +165,7 @@ class Application(tk.Frame):
         if pw is None:
             return
 
-        item = {"site": site, "id": user_id, "pw": pw}
+        item = {"site": site, "id": user_id, "pw": pw, "tags": tags,}
         self.items.append(item)
         self.commit_change("追加")
 
