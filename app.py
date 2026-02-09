@@ -164,6 +164,11 @@ class Application(tk.Frame):
         pw = simpledialog.askstring("追加", "パスワードを入力してください:", parent=self.root)
         if pw is None:
             return
+        tag_text = simpledialog.askstring("追加", "タグを入力してください(例: 仕事, SNS):", parent=self.root)
+        if tag_text is None:
+            return
+        
+        tags = [tag.strip() for tag in tag_text.split(",") if tag.strip()]
 
         item = {"site": site, "id": user_id, "pw": pw, "tags": tags,}
         self.items.append(item)
