@@ -234,24 +234,34 @@ class Application(tk.Frame):
             self.items = payload if isinstance(payload, list) else []
             self.show_pw.set(True)
             
-    def format_item(self, item: dict[str, str]) -> str:
-        pw_text = item['pw'] if self.show_pw.get() else self.MASK
-        return f"{item['site']} | ID: {item['id']} | PW: {pw_text}"
+    def format_item(self, item: dict) -> str:
+        pw_text = item.get("pw", "") if self.show_pw.get() else self.MASK
+        tags = item.get("tags", [])
+        tag_text = f" [{', '.join(tags)}]" if tags else ""
+        return f"{item.get('site','')} | ID: {item.get('id','')} | PW: {pw_text}{tag_text}"
+
     
     def refresh_listbox(self):
-        if self.locked:
+        if getattr(self, "locked", False):
             return
-        
+
         self.listbox.delete(0, tk.END)
-        
+
         keyword = self.search_var.get().strip().lower()
-        
+
         for item in self.items:
-            # 検索対象フィルタリング
-            haystack = item.get("site", "").lower()
+            site = str(item.get("site", "")).lower()
+            tags = item.get("tags", [])
+            tag_join = " ".join(str(t).lower() for t in tags)
+
+            # 検索対象：site + tags
+            haystack = f"{site} {tag_join}".strip()
+
             if keyword and keyword not in haystack:
                 continue
+
             self.listbox.insert(tk.END, self.format_item(item))
+
 
     def on_toggle_show_pw(self):
         self.refresh_listbox()
