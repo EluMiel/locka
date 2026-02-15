@@ -233,6 +233,15 @@ class Application(tk.Frame):
             # 旧形式（listだけ保存してた場合）への保険
             self.items = payload if isinstance(payload, list) else []
             self.show_pw.set(True)
+        # ---tags補完(過去データ互換) ---
+        for item in self.items:
+            tags = item.get("tags", [])
+            if not isinstance(tags, str):
+                item["tags"] = [t.strip() for t in tags if str(t).strip()]
+            elif isinstance(tags, str):
+                item["tags"] = [str(t).strip() for t in tags if str(t).strip()]
+            else:
+                item["tags"] = []
             
     def format_item(self, item: dict) -> str:
         pw_text = item.get("pw", "") if self.show_pw.get() else self.MASK
