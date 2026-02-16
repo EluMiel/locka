@@ -16,6 +16,7 @@ class Application(tk.Frame):
         super().__init__(root)
         self.root = root
         self.master_password = master_password
+        self.sort_var = tk.StringVar(value="name_asc")  # 初期:名前昇順
         
         # ウィンドウサイズ設定
         self.root.geometry("600x300")
@@ -91,19 +92,52 @@ class Application(tk.Frame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
 
-    # ---- 上：検索バー ----
+    # ---- 上：ソート・検索バー ----
         top_frame = ttk.Frame(self, padding=(10, 10, 10, 5))
         top_frame.grid(row=0, column=0, sticky="ew")
-        top_frame.grid_columnconfigure(0, weight=1)  # 左の空きを伸ばして右寄せにする
+        top_frame.grid_columnconfigure(1, weight=1)  # 中央の空きを伸ばして左右に配置
 
-        ttk.Label(top_frame, text="").grid(row=0, column=0, sticky="ew")  # 伸びるダミー（右寄せ用）
-        ttk.Label(top_frame, text="検索:").grid(row=0, column=1, padx=(0, 6))
+        # 左側：ソート
+        ttk.Label(top_frame, text="ソート:").grid(row=0, column=0, padx=(0, 6))
+
+        sort_values = [
+            ("名前（昇順）", "name_asc"),
+            ("名前（降順）", "name_desc"),
+            ("作成日（新しい順）", "created_desc"),
+            ("作成日（古い順）", "created_asc"),
+            ("更新日（新しい順）", "updated_desc"),
+            ("更新日（古い順）", "updated_asc"),
+        ]
+
+        self.sort_combo = ttk.Combobox(
+            top_frame,
+            textvariable=self.sort_var,
+            values=[label for label, _ in sort_values],
+            state="readonly",
+            width=18,
+        )
+        self._sort_map = {label: key for label, key in sort_values}
+        self._sort_rev = {key: label for label, key in sort_values}
+
+        # 初期表示ラベル
+        self.sort_combo.set(self._sort_rev[self.sort_var.get()])
+
+        def on_sort_change(_=None):
+            self.sort_var.set(self._sort_map[self.sort_combo.get()])
+            self.refresh_listbox()
+            self.commit_change("ソート変更")
+
+        self.sort_combo.bind("<<ComboboxSelected>>", on_sort_change)
+        self.sort_combo.grid(row=0, column=1, sticky="w")
+
+        # 右側：検索
+        ttk.Label(top_frame, text="検索:").grid(row=0, column=2, padx=(0, 6))
 
         self.search_entry = ttk.Entry(top_frame, textvariable=self.search_var, width=28)
-        self.search_entry.grid(row=0, column=2)
+        self.search_entry.grid(row=0, column=3)
 
         self.clear_btn = ttk.Button(top_frame, text="×", command=self.clear_search, width=3, style="Clear.TButton")
-        self.clear_btn.grid(row=0, column=3, padx=(6, 0))
+        self.clear_btn.grid(row=0, column=4, padx=(6, 0))
 
     # 区切り線
         ttk.Separator(self, orient="horizontal").grid(row=1, column=0, sticky="ew")
