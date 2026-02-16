@@ -1,3 +1,4 @@
+#マスター testpass
 import tkinter as tk
 from tkinter import simpledialog, messagebox, ttk
 import json
@@ -155,24 +156,53 @@ class Application(tk.Frame):
         
 
     def add_item(self):
-        site = simpledialog.askstring("追加", "サイト名を入力してください:", parent=self.root)
-        if site is None:
+        # site
+        site = simpledialog.askstring(
+            "Locka 追加",
+            "サイト名を入力してください。",
+            parent=self.root,
+        )
+        if site is None or not site.strip():
             return
-        user_id = simpledialog.askstring("追加", "IDを入力してください:", parent=self.root)
+
+        # id
+        user_id = simpledialog.askstring(
+            "Locka 追加",
+            "IDを入力してください。",
+            parent=self.root,
+        )
         if user_id is None:
             return
-        pw = simpledialog.askstring("追加", "パスワードを入力してください:", parent=self.root)
+        # pw（← マスクしない）
+        pw = simpledialog.askstring(
+            "Locka 追加",
+            "パスワードを入力してください。",
+            parent=self.root,
+        )
         if pw is None:
             return
-        tag_text = simpledialog.askstring("追加", "タグを入力してください(例: 仕事, SNS):", parent=self.root)
+
+        # tags（カンマ区切り）
+        tag_text = simpledialog.askstring(
+            "Locka 追加",
+            "タグ（カンマ区切り）/ 例：仕事, SNS",
+            parent=self.root,
+        )
         if tag_text is None:
             return
-        
-        tags = [tag.strip() for tag in tag_text.split(",") if tag.strip()]
+        tags = [t.strip() for t in tag_text.split(",") if t.strip()]
 
-        item = {"site": site, "id": user_id, "pw": pw, "tags": tags,}
-        self.items.append(item)
+        # 追加
+        self.items.append({
+            "site": site,
+            "id": user_id,
+            "pw": pw,
+            "tags": tags,
+        })
+
+        self.refresh_listbox()
         self.commit_change("追加")
+
 
     def copy_id(self):
         selected = self.listbox.curselection()
@@ -236,9 +266,7 @@ class Application(tk.Frame):
         # ---tags補完(過去データ互換) ---
         for item in self.items:
             tags = item.get("tags", [])
-            if not isinstance(tags, str):
-                item["tags"] = [t.strip() for t in tags if str(t).strip()]
-            elif isinstance(tags, str):
+            if isinstance(tags, list):
                 item["tags"] = [str(t).strip() for t in tags if str(t).strip()]
             else:
                 item["tags"] = []
@@ -331,28 +359,55 @@ class Application(tk.Frame):
         selected = self.listbox.curselection()
         if not selected:
             return
-        
+
         index = selected[0]
         current = self.items[index]
-        
-        # 既存値を初期値にして入力させる(Cancelで中断)
-        site = simpledialog.askstring("編集", "サイト名を入力してください。", initialvalue=current["site"], parent=self.root)
+        # site
+        site = simpledialog.askstring(
+            "編集",
+            "サイト名を入力してください。",
+            initialvalue=current.get("site", ""),
+            parent=self.root,
+        )
         if site is None:
             return
-        
-        user_id = simpledialog.askstring("編集", "IDを入力してください。", initialvalue=current["id"], parent=self.root)
+
+        # id
+        user_id = simpledialog.askstring(
+            "編集",
+            "IDを入力してください。",
+            initialvalue=current.get("id", ""),
+            parent=self.root,
+        )
         if user_id is None:
             return
-        
-        pw = simpledialog.askstring("編集", "パスワードを入力してください。", initialvalue=current["pw"], parent=self.root)
+        # pw（← ここが肝：show="*" を付けない＝平文表示）
+        pw = simpledialog.askstring(
+            "編集",
+            "パスワードを入力してください。",
+            initialvalue=current.get("pw", ""),
+            parent=self.root,
+        )
         if pw is None:
             return
-        
-        # 同じ行を上書き
-        self.items[index] = {"site": site, "id": user_id, "pw": pw}
+
+        # tags（カンマ区切り）
+        tags_initial = ", ".join(current.get("tags", []))
+        tag_text = simpledialog.askstring(
+            "編集",
+            "タグ（カンマ区切り）/ 例：仕事, SNS",
+            initialvalue=tags_initial,
+            parent=self.root,
+        )
+        if tag_text is None:
+            return
+        tags = [t.strip() for t in tag_text.split(",") if t.strip()]
+
+        # 上書き
+        self.items[index] = {"site": site, "id": user_id, "pw": pw, "tags": tags}
         self.refresh_listbox()
         self.commit_change("編集")
-        
+    
     def clear_search(self):
         self.search_var.set("")
         self.search_entry.focus_set()
