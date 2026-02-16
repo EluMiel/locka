@@ -227,11 +227,14 @@ class Application(tk.Frame):
         tags = [t.strip() for t in tag_text.split(",") if t.strip()]
 
         # 追加
+        now = time.time()
         self.items.append({
             "site": site,
             "id": user_id,
             "pw": pw,
             "tags": tags,
+            "created_at": now,
+            "updated_at": now,
         })
 
         self.refresh_listbox()
@@ -304,6 +307,14 @@ class Application(tk.Frame):
                 item["tags"] = [str(t).strip() for t in tags if str(t).strip()]
             else:
                 item["tags"] = []
+
+        # 時刻データを持たない過去データがあった場合の対策
+        now = time.time()
+        for item in self.items:
+            if "created_at" not in item:
+                item["created_at"] = now
+            if "updated_at" not in item:
+                item["updated_at"] = now
             
     def format_item(self, item: dict) -> str:
         pw_text = item.get("pw", "") if self.show_pw.get() else self.MASK
@@ -438,7 +449,8 @@ class Application(tk.Frame):
         tags = [t.strip() for t in tag_text.split(",") if t.strip()]
 
         # 上書き
-        self.items[index] = {"site": site, "id": user_id, "pw": pw, "tags": tags}
+        now = time.time()
+        self.items[index] = {"site": site, "id": user_id, "pw": pw, "tags": tags, "updated_at": now}
         self.refresh_listbox()
         self.commit_change("編集")
     
