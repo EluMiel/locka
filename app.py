@@ -17,6 +17,7 @@ class Application(tk.Frame):
         self.root = root
         self.master_password = master_password
         self.sort_var = tk.StringVar(value="name_asc")  # 初期:名前昇順
+        self.sort_label_var = tk.StringVar()  # コンボ表示用（日本語ラベル）
         
         # ウィンドウサイズ設定
         self.root.geometry("600x300")
@@ -45,6 +46,24 @@ class Application(tk.Frame):
         style.map("TButton",
             background=[("disabled", self.BORDER), ("active", self.ACCENT), ("!active", self.MINT)],
             foreground=[("disabled", "#9BA5AD"), ("active", self.TEXT), ("!active", self.TEXT)]
+        )
+
+        # コンボボックスのスタイル
+        style.configure("TCombobox",
+            fieldbackground=self.BG,
+            background=self.MINT,
+            foreground=self.TEXT,
+            selectbackground=self.ACCENT,
+            selectforeground=self.BG,
+            bordercolor=self.BORDER,
+            lightcolor=self.BORDER,
+            darkcolor=self.BORDER,
+            arrowcolor=self.TEXT
+        )
+        style.map("TCombobox",
+            background=[("readonly", self.MINT), ("active", self.ACCENT)],
+            fieldbackground=[("readonly", self.BG), ("!readonly", self.BG)],
+            foreground=[("readonly", self.TEXT), ("!readonly", self.TEXT)]
         )
         
         # クリアボタン用のカスタムスタイル
@@ -111,16 +130,17 @@ class Application(tk.Frame):
 
         self.sort_combo = ttk.Combobox(
             top_frame,
-            textvariable=self.sort_var,
+            textvariable=self.sort_label_var,
             values=[label for label, _ in sort_values],
             state="readonly",
             width=18,
+            style="TCombobox",
         )
         self._sort_map = {label: key for label, key in sort_values}
         self._sort_rev = {key: label for label, key in sort_values}
 
         # 初期表示ラベル
-        self.sort_combo.set(self._sort_rev[self.sort_var.get()])
+        self.sort_label_var.set(self._sort_rev[self.sort_var.get()])
 
         def on_sort_change(_=None):
             self.sort_var.set(self._sort_map[self.sort_combo.get()])
@@ -330,7 +350,10 @@ class Application(tk.Frame):
         self.listbox.delete(0, tk.END)
 
         keyword = self.search_var.get().strip().lower()
+        sort_key = self.sort_var.get()
 
+        filtered_items = []
+        
         for item in self.items:
             site = str(item.get("site", "")).lower()
             tags = item.get("tags", [])
@@ -342,8 +365,25 @@ class Application(tk.Frame):
             if keyword and keyword not in haystack:
                 continue
 
-            self.listbox.insert(tk.END, self.format_item(item))
+            filtered_items.append(item)
 
+        # --- ソート処理 ---
+        if sort_key == "name_asc":
+            filtered_items.sort(key=lambda x: str(x.get("site", "")).lower())
+        elif sort_key == "name_desc":
+            filtered_items.sort(key=lambda x: str(x.get("site", "")).lower(), reverse=True)
+        elif sort_key == "created_asc":
+            filtered_items.sort(key=lambda x: x.get("created_at", 0))
+        elif sort_key == "created_desc":
+            filtered_items.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+        elif sort_key == "updated_asc":
+            filtered_items.sort(key=lambda x: x.get("updated_at", 0))
+        elif sort_key == "updated_desc":
+            filtered_items.sort(key=lambda x: x.get("updated_at", 0), reverse=True)
+
+        # --- 表示 ---
+        for item in filtered_items:
+            self.listbox.insert(tk.END, self.format_item(item))
 
     def on_toggle_show_pw(self):
         self.refresh_listbox()
