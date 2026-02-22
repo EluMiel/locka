@@ -1,3 +1,4 @@
+#マスター testpass
 import tkinter as tk
 from tkinter import simpledialog, messagebox, ttk
 import json
@@ -15,6 +16,8 @@ class Application(tk.Frame):
         super().__init__(root)
         self.root = root
         self.master_password = master_password
+        self.sort_var = tk.StringVar(value="name_asc")  # 初期:名前昇順
+        self.sort_label_var = tk.StringVar()  # コンボ表示用（日本語ラベル）
         
         # ウィンドウサイズ設定
         self.root.geometry("600x300")
@@ -43,6 +46,24 @@ class Application(tk.Frame):
         style.map("TButton",
             background=[("disabled", self.BORDER), ("active", self.ACCENT), ("!active", self.MINT)],
             foreground=[("disabled", "#9BA5AD"), ("active", self.TEXT), ("!active", self.TEXT)]
+        )
+
+        # コンボボックスのスタイル
+        style.configure("TCombobox",
+            fieldbackground=self.BG,
+            background=self.MINT,
+            foreground=self.TEXT,
+            selectbackground=self.ACCENT,
+            selectforeground=self.BG,
+            bordercolor=self.BORDER,
+            lightcolor=self.BORDER,
+            darkcolor=self.BORDER,
+            arrowcolor=self.TEXT
+        )
+        style.map("TCombobox",
+            background=[("readonly", self.MINT), ("active", self.ACCENT)],
+            fieldbackground=[("readonly", self.BG), ("!readonly", self.BG)],
+            foreground=[("readonly", self.TEXT), ("!readonly", self.TEXT)]
         )
         
         # クリアボタン用のカスタムスタイル
@@ -90,19 +111,53 @@ class Application(tk.Frame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
 
-    # ---- 上：検索バー ----
+    # ---- 上：ソート・検索バー ----
         top_frame = ttk.Frame(self, padding=(10, 10, 10, 5))
         top_frame.grid(row=0, column=0, sticky="ew")
-        top_frame.grid_columnconfigure(0, weight=1)  # 左の空きを伸ばして右寄せにする
+        top_frame.grid_columnconfigure(1, weight=1)  # 中央の空きを伸ばして左右に配置
 
-        ttk.Label(top_frame, text="").grid(row=0, column=0, sticky="ew")  # 伸びるダミー（右寄せ用）
-        ttk.Label(top_frame, text="検索:").grid(row=0, column=1, padx=(0, 6))
+        # 左側：ソート
+        ttk.Label(top_frame, text="ソート:").grid(row=0, column=0, padx=(0, 6))
+
+        sort_values = [
+            ("名前（昇順）", "name_asc"),
+            ("名前（降順）", "name_desc"),
+            ("作成日（新しい順）", "created_desc"),
+            ("作成日（古い順）", "created_asc"),
+            ("更新日（新しい順）", "updated_desc"),
+            ("更新日（古い順）", "updated_asc"),
+        ]
+
+        self.sort_combo = ttk.Combobox(
+            top_frame,
+            textvariable=self.sort_label_var,
+            values=[label for label, _ in sort_values],
+            state="readonly",
+            width=18,
+            style="TCombobox",
+        )
+        self._sort_map = {label: key for label, key in sort_values}
+        self._sort_rev = {key: label for label, key in sort_values}
+
+        # 初期表示ラベル
+        self.sort_label_var.set(self._sort_rev[self.sort_var.get()])
+
+        def on_sort_change(_=None):
+            self.sort_var.set(self._sort_map[self.sort_combo.get()])
+            self.refresh_listbox()
+            self.commit_change("ソート変更")
+
+        self.sort_combo.bind("<<ComboboxSelected>>", on_sort_change)
+        self.sort_combo.grid(row=0, column=1, sticky="w")
+
+        # 右側：検索
+        ttk.Label(top_frame, text="検索:").grid(row=0, column=2, padx=(0, 6))
 
         self.search_entry = ttk.Entry(top_frame, textvariable=self.search_var, width=28)
-        self.search_entry.grid(row=0, column=2)
+        self.search_entry.grid(row=0, column=3)
 
         self.clear_btn = ttk.Button(top_frame, text="×", command=self.clear_search, width=3, style="Clear.TButton")
-        self.clear_btn.grid(row=0, column=3, padx=(6, 0))
+        self.clear_btn.grid(row=0, column=4, padx=(6, 0))
 
     # 区切り線
         ttk.Separator(self, orient="horizontal").grid(row=1, column=0, sticky="ew")
@@ -155,24 +210,56 @@ class Application(tk.Frame):
         
 
     def add_item(self):
-        site = simpledialog.askstring("追加", "サイト名を入力してください:", parent=self.root)
-        if site is None:
+        # site
+        site = simpledialog.askstring(
+            "Locka 追加",
+            "サイト名を入力してください。",
+            parent=self.root,
+        )
+        if site is None or not site.strip():
             return
-        user_id = simpledialog.askstring("追加", "IDを入力してください:", parent=self.root)
+
+        # id
+        user_id = simpledialog.askstring(
+            "Locka 追加",
+            "IDを入力してください。",
+            parent=self.root,
+        )
         if user_id is None:
             return
-        pw = simpledialog.askstring("追加", "パスワードを入力してください:", parent=self.root)
+        # pw（← マスクしない）
+        pw = simpledialog.askstring(
+            "Locka 追加",
+            "パスワードを入力してください。",
+            parent=self.root,
+        )
         if pw is None:
             return
-        tag_text = simpledialog.askstring("追加", "タグを入力してください(例: 仕事, SNS):", parent=self.root)
+
+        # tags（カンマ区切り）
+        tag_text = simpledialog.askstring(
+            "Locka 追加",
+            "タグ（カンマ区切り）/ 例：仕事, SNS",
+            parent=self.root,
+        )
         if tag_text is None:
             return
-        
-        tags = [tag.strip() for tag in tag_text.split(",") if tag.strip()]
+        tags = [t.strip() for t in tag_text.split(",") if t.strip()]
 
-        item = {"site": site, "id": user_id, "pw": pw, "tags": tags,}
-        self.items.append(item)
+        # 追加
+        now = time.time()
+        self.items.append({
+            "site": site,
+            "id": user_id,
+            "pw": pw,
+            "tags": tags,
+            "created_at": now,
+            "updated_at": now,
+        })
+
+        self.refresh_listbox()
         self.commit_change("追加")
+
 
     def copy_id(self):
         selected = self.listbox.curselection()
@@ -236,12 +323,18 @@ class Application(tk.Frame):
         # ---tags補完(過去データ互換) ---
         for item in self.items:
             tags = item.get("tags", [])
-            if not isinstance(tags, str):
-                item["tags"] = [t.strip() for t in tags if str(t).strip()]
-            elif isinstance(tags, str):
+            if isinstance(tags, list):
                 item["tags"] = [str(t).strip() for t in tags if str(t).strip()]
             else:
                 item["tags"] = []
+
+        # 時刻データを持たない過去データがあった場合の対策
+        now = time.time()
+        for item in self.items:
+            if "created_at" not in item:
+                item["created_at"] = now
+            if "updated_at" not in item:
+                item["updated_at"] = now
             
     def format_item(self, item: dict) -> str:
         pw_text = item.get("pw", "") if self.show_pw.get() else self.MASK
@@ -257,7 +350,10 @@ class Application(tk.Frame):
         self.listbox.delete(0, tk.END)
 
         keyword = self.search_var.get().strip().lower()
+        sort_key = self.sort_var.get()
 
+        filtered_items = []
+        
         for item in self.items:
             site = str(item.get("site", "")).lower()
             tags = item.get("tags", [])
@@ -269,8 +365,25 @@ class Application(tk.Frame):
             if keyword and keyword not in haystack:
                 continue
 
-            self.listbox.insert(tk.END, self.format_item(item))
+            filtered_items.append(item)
 
+        # --- ソート処理 ---
+        if sort_key == "name_asc":
+            filtered_items.sort(key=lambda x: str(x.get("site", "")).lower())
+        elif sort_key == "name_desc":
+            filtered_items.sort(key=lambda x: str(x.get("site", "")).lower(), reverse=True)
+        elif sort_key == "created_asc":
+            filtered_items.sort(key=lambda x: x.get("created_at", 0))
+        elif sort_key == "created_desc":
+            filtered_items.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+        elif sort_key == "updated_asc":
+            filtered_items.sort(key=lambda x: x.get("updated_at", 0))
+        elif sort_key == "updated_desc":
+            filtered_items.sort(key=lambda x: x.get("updated_at", 0), reverse=True)
+
+        # --- 表示 ---
+        for item in filtered_items:
+            self.listbox.insert(tk.END, self.format_item(item))
 
     def on_toggle_show_pw(self):
         self.refresh_listbox()
@@ -331,28 +444,56 @@ class Application(tk.Frame):
         selected = self.listbox.curselection()
         if not selected:
             return
-        
+
         index = selected[0]
         current = self.items[index]
-        
-        # 既存値を初期値にして入力させる(Cancelで中断)
-        site = simpledialog.askstring("編集", "サイト名を入力してください。", initialvalue=current["site"], parent=self.root)
+        # site
+        site = simpledialog.askstring(
+            "編集",
+            "サイト名を入力してください。",
+            initialvalue=current.get("site", ""),
+            parent=self.root,
+        )
         if site is None:
             return
-        
-        user_id = simpledialog.askstring("編集", "IDを入力してください。", initialvalue=current["id"], parent=self.root)
+
+        # id
+        user_id = simpledialog.askstring(
+            "編集",
+            "IDを入力してください。",
+            initialvalue=current.get("id", ""),
+            parent=self.root,
+        )
         if user_id is None:
             return
-        
-        pw = simpledialog.askstring("編集", "パスワードを入力してください。", initialvalue=current["pw"], parent=self.root)
+        # pw（← ここが肝：show="*" を付けない＝平文表示）
+        pw = simpledialog.askstring(
+            "編集",
+            "パスワードを入力してください。",
+            initialvalue=current.get("pw", ""),
+            parent=self.root,
+        )
         if pw is None:
             return
-        
-        # 同じ行を上書き
-        self.items[index] = {"site": site, "id": user_id, "pw": pw}
+
+        # tags（カンマ区切り）
+        tags_initial = ", ".join(current.get("tags", []))
+        tag_text = simpledialog.askstring(
+            "編集",
+            "タグ（カンマ区切り）/ 例：仕事, SNS",
+            initialvalue=tags_initial,
+            parent=self.root,
+        )
+        if tag_text is None:
+            return
+        tags = [t.strip() for t in tag_text.split(",") if t.strip()]
+
+        # 上書き
+        now = time.time()
+        self.items[index] = {"site": site, "id": user_id, "pw": pw, "tags": tags, "updated_at": now}
         self.refresh_listbox()
         self.commit_change("編集")
-        
+    
     def clear_search(self):
         self.search_var.set("")
         self.search_entry.focus_set()
