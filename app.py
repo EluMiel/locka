@@ -8,7 +8,7 @@ import time
 
 class Application(tk.Frame):
     MASK = "********"  # パスワード非表示設定時の表示文字列
-    IDLE_TIMEOUT_SEC = 2 * 60  # 自動ロックまでの無操作時間（秒）
+    IDLE_TIMEOUT_SEC = 60  # 自動ロックまでの無操作時間（秒）
     IDLE_CHECK_MS = 1000  # 無操作チェック間隔（ミリ秒）
     
     def __init__(self, root=None, master_password: str = ""):
